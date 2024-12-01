@@ -1,0 +1,53 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: hmdp
+  rabbitmq:
+    host: 104.215.29.43
+    post: 5672
+    virtual-host: /lv
+    username: lv
+    password: lv
+    publisher-confirm-type: correlated
+    listener:
+      simple:
+        acknowledge-mode: auto
+        retry:
+          enabled: true
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://192.168.50.2:3306/hmdp?useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: Sc@.040423
+
+  redis:
+    master:
+      host: 192.168.50.131
+      port: 6379
+      name: master1
+    slaves:
+      - host: 192.168.50.132
+        port: 6379
+        name: slave01
+      - host: 192.168.50.134
+        port: 6379
+        name: slave02
+      - host: 192.168.50.133
+        port: 6379
+        name: slave03
+    maxOffsetMinus: 5000
+
+  jackson:
+    default-property-inclusion: non_null
+mybatis-plus:
+  type-aliases-package: com.hmdp.entity
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+logging:
+  level:
+    root: info
+  file:
+    name: logs/myapp.log
+    max-size: 10MB
+    max-history: 30
