@@ -184,4 +184,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
         return Result.ok(finalCount);
     }
+
+    @Override
+    public Result logOut() {
+        UserHolder.removeUser();
+        return Result.ok();
+    }
 }

@@ -6,7 +6,7 @@ spring:
   rabbitmq:
     host: 104.215.29.43
     post: 5672
-    virtual-host: /lv
+    virtual-host: lv
     username: lv
     password: lv
     publisher-confirm-type: correlated

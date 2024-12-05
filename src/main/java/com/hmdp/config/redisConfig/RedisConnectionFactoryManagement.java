@@ -49,6 +49,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
     private Long version=0L;
 
 
+    /*在该redisConnectionFactory管理类属性初始化完毕之后
+    * 对两个copyOnWrite数组进行赋值操作
+    * 两个数组对所有的Redis节点进行管理
+    * availableConnectionFactories数组管理所有标记为可以使用的Redis节点
+    * unavailableConnectionFactories数组管理所有标记为不可用的Redis节点
+    * 使用copyOnWrite数组的作用是避免获取节点方法获取指定index元素时恰好改节点被从可用数组移除
+    * 从而带来线程安全问题带来的空指针异常*/
     @PostConstruct
     public void init()
     {
@@ -65,8 +72,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
     private RedisConnectionFactoryManagement()
     {
-    }
 
+    }
+    //随机从可用节点获取redisConnectionFactory,实现Redis读操作的随机负载均衡
     public  RedisTemplate<String,String> getReadRedisTemplate() {
         setReadConnectionFactory(redisTemplate);
         redisTemplate.afterPropertiesSet();
@@ -74,6 +82,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
         return redisTemplate;
     }
 
+    //返回Redis主节点redisConnectionFactory
     public RedisTemplate<String,String> getWriteRedisTemplate() {
         setWriteConnectionFactory(redisTemplate);
         redisTemplate.afterPropertiesSet();
@@ -84,7 +93,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
     private void incrVersion(){
         version++;
     }
-
+    //该方法将一个读节点从availableConnectionFactories数组中移除
+    //并将节点放入unavailableConnectionFactories
+    //将该节点归为不可用节点
     public  void disable(RedisNode redisNode){
         int index=0;
         for (RedisConnectionFactory availableConnectionFactory : availableConnectionFactories) {
@@ -104,6 +115,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
     }
 
+    //该方法将一个指定节点从unavailableConnectionFactories数组移除
+    //并将节点放入availableConnectionFactories
+    //重新将该节点标记为可用节点
     public  void reAble(RedisNode redisNode){
         int index=0;
         for (RedisConnectionFactory unavailableConnectionFactory : unavailableConnectionFactories) {

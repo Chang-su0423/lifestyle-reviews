@@ -59,16 +59,15 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     @Autowired
     private RedisConnectionFactoryManagement management;
 
-
     private static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);
 
     private static final Long LOGIC_EXPIRE_TIME=200000000L;
 
     private static final String REDIS_KEY_PREFIX = "cache:shop:";
 
-
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
     @Qualifier("redisTemplate")
     @Autowired
     private RedisTemplate redisTemplate;

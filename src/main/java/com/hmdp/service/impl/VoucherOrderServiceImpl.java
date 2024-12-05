@@ -51,6 +51,9 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     @Autowired
     private StringRedisTemplate redis;
 
+    @Autowired
+    private ISeckillVoucherService seckillVoucherService;
+
 
     private static final DefaultRedisScript<Long> SECKILL_SCRIPT;
 
@@ -68,6 +71,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         SECKILL_SCRIPT.setLocation(new ClassPathResource("seckill.lua"));
     }
 
+    @Transactional
     @RabbitListener(queues = "sekill_queue")
     public void processMessage(SecKillOrderDTO orderDTO) {
         Long orderId = orderDTO.getOrderId();
@@ -76,14 +80,14 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         voucherOrder.setUserId(orderDTO.getUserId());
         voucherOrder.setVoucherId(orderDTO.getVoucherId());
         voucherOrderService.createVoucherOrder(voucherOrder);
-
+        seckillVoucherService.update().eq("voucher_id",orderDTO.getVoucherId()).setSql("set stock = stock-1");
     }
 
 
     public void sendMessageToRabbitMQ(List<Long> result, int reTryCount) {
         //设置最大重试次数
         int maxRetryCount = 5;
-        if (reTryCount > 5) {
+        if (reTryCount > maxRetryCount) {
             logger.info("retry times beyond max retry times");
             return;
         }
@@ -92,15 +96,19 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         cd.getFuture().addCallback(new ListenableFutureCallback<CorrelationData.Confirm>() {
             @Override
             public void onFailure(Throwable throwable) {
+                //SpringAMQP在处理future时发生异常，一般不会出现
                 logger.info("send message fail" + throwable.getMessage());
             }
 
             @Override
             public void onSuccess(CorrelationData.Confirm confirm) {
                 if (confirm.isAck()) {
+                    //mq发送了ack确认
                     logger.info("send message ack success");
                 } else {
+                    //日志中打印NACK原因
                     logger.info("send message ack fail" + confirm.getReason());
+                    //mq发送了NACK
                     //重新进行发送业务
                     try {
                         Thread.sleep(1000);

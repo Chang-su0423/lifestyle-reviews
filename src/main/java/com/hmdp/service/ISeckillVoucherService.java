@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @author 虎哥
  * @since 2022-01-04
  */
-public interface ISeckillVoucherService extends IService<SeckillVoucher> {
+public interface
+ISeckillVoucherService extends IService<SeckillVoucher> {
 
 }

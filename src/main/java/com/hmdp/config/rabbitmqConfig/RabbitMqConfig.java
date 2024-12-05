@@ -10,10 +10,7 @@ public class RabbitMqConfig {
 
    @Bean
     public Queue queue(){
-       return QueueBuilder
-               .durable("sekill_queue")
-               .lazy() // 开启Lazy模式
-               .build();
+       return new Queue("sekill_queue");
    }
 
    @Bean
