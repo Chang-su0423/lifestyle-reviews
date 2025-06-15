@@ -61,8 +61,8 @@ public class ShopController {
     @PutMapping
     public Result updateShop(@RequestBody Shop shop) {
         // 写入数据库
-        shopService.updateRedisAndMysql(shop);
-        return shopService.updateRedisAndMysql(shop);
+        this.updateShop(shop);
+        return Result.ok();
     }
 
     /**

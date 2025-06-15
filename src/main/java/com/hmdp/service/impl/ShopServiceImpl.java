@@ -63,14 +63,8 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     private static final Long LOGIC_EXPIRE_TIME=200000000L;
 
-    private static final String REDIS_KEY_PREFIX = "cache:shop:";
-
-    @Autowired
-    private StringRedisTemplate stringRedisTemplate;
 
     @Qualifier("redisTemplate")
-    @Autowired
-    private RedisTemplate redisTemplate;
 
 
     @Override
@@ -90,6 +84,17 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
         return Result.ok(shop);
     }
+
+    @Override
+    public void writeIntoRedisWithLogicExpire(Shop shop) {
+        RedisTemplate<String, String> redisTemplate = management.getWriteRedisTemplate();
+        RedisData redisData = new RedisData();
+        redisData.setData(shop);
+        redisData.setExpireTime(LocalDateTime.now().plusSeconds(LOGIC_EXPIRE_TIME));
+        String redisKey = RedisConstants.CACHE_SHOP_KEY + shop.getId();
+        redisTemplate.opsForValue().set(redisKey,JSONUtil.toJsonStr(redisData));
+    }
+
 
 
     private Shop queryWithLogicExpire(Long id) {
@@ -132,7 +137,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         CACHE_REBUILD_EXECUTOR.submit(() ->
         {
             try {
-                saveShopToRedis(id, 2000000L);
+                saveShopToRedis(shopNew.getId(),LOGIC_EXPIRE_TIME);
             } finally {
                 this.unLock(lockKey);
             }
@@ -149,13 +154,33 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     }
 
-    @Override
-    public Result updateRedisAndMysql(Shop shop) {
-        //更新数据库
-        this.updateById(shop);
-        //采取逻辑过期时间的策略，不进行缓存的删除
-        return Result.ok(shop);
+
+
+    //获取互斥锁
+    private boolean tryLock(String key) {
+        Boolean isFlag = redis.opsForValue().setIfAbsent(key, "1", 10, TimeUnit.SECONDS);
+        return BooleanUtil.isTrue(isFlag);
     }
+
+    //释放互斥锁
+    private void unLock(String key) {
+        redis.delete(key);
+    }
+
+    public void saveShopToRedis(Long id, Long expireSeconds) {
+        RedisLogicExpireTime redisLogicExpireTime = new RedisLogicExpireTime();
+        Shop shop = this.getById(id);
+        //模拟长耗时的缓存重建操作
+        try {
+            Thread.sleep(20);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        redisLogicExpireTime.setData(shop);
+        redisLogicExpireTime.setExpireTime(LocalDateTime.now().plusSeconds(expireSeconds));
+        redis.opsForValue().set(RedisConstants.CACHE_SHOP_KEY + id, JSONUtil.toJsonStr(redisLogicExpireTime));
+    }
+
 
     @Override
     public Result searchByXAndY(Integer typeId, Integer current, Double x, Double y) {
@@ -216,41 +241,6 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     }
 
-    @Override
-    public void writeIntoRedisWithLogicExpire(Shop shop) {
-        RedisTemplate<String, String> redisTemplate = management.getWriteRedisTemplate();
-        RedisData redisData = new RedisData();
-        redisData.setData(shop);
-        redisData.setExpireTime(LocalDateTime.now().plusSeconds(LOGIC_EXPIRE_TIME));
-        String redisKey = RedisConstants.CACHE_SHOP_KEY + shop.getId();
-        redisTemplate.opsForValue().set(redisKey,JSONUtil.toJsonStr(redisData));
-    }
-
-
-    //获取互斥锁
-    private boolean tryLock(String key) {
-        Boolean isFlag = redis.opsForValue().setIfAbsent(key, "1", 10, TimeUnit.SECONDS);
-        return BooleanUtil.isTrue(isFlag);
-    }
-
-    //释放互斥锁
-    private void unLock(String key) {
-        redis.delete(key);
-    }
-
-    public void saveShopToRedis(Long id, Long expireSeconds) {
-        RedisLogicExpireTime redisLogicExpireTime = new RedisLogicExpireTime();
-        Shop shop = this.getById(id);
-        //模拟长耗时的缓存重建操作
-        try {
-            Thread.sleep(20);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        redisLogicExpireTime.setData(shop);
-        redisLogicExpireTime.setExpireTime(LocalDateTime.now().plusSeconds(expireSeconds));
-        redis.opsForValue().set(RedisConstants.CACHE_SHOP_KEY + id, JSONUtil.toJsonStr(redisLogicExpireTime));
-    }
     /*public Shop queryWithPassThrough(Long id) {
         String cacheKey = RedisConstants.CACHE_SHOP_KEY + id;
         //查询Redis缓存

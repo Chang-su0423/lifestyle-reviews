@@ -4,17 +4,18 @@ spring:
   application:
     name: hmdp
   rabbitmq:
-    host: 104.215.29.43
+    host: 192.168.50.2
     post: 5672
-    virtual-host: lv
-    username: lv
-    password: lv
+    virtual-host: sec
+    username: sec
+    password: 123
     publisher-confirm-type: correlated
     listener:
       simple:
         acknowledge-mode: auto
         retry:
           enabled: true
+    connection-timeout: 1000
   datasource:
     driver-class-name: com.mysql.jdbc.Driver
     url: jdbc:mysql://192.168.50.2:3306/hmdp?useSSL=false&allowPublicKeyRetrieval=true

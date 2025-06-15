@@ -106,7 +106,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
                 incrVersion();
                 unavailableConnectionFactories.add(availableConnectionFactories.get(index));
                 availableConnectionFactories.remove(index);
-                log.disableLog(redisNode);
                 break;
             }
             index++;

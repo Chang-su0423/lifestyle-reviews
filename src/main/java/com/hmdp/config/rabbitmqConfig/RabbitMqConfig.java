@@ -10,7 +10,7 @@ public class RabbitMqConfig {
 
    @Bean
     public Queue queue(){
-       return new Queue("sekill_queue");
+       return new Queue("sekill_queue",true,false,false);
    }
 
    @Bean
